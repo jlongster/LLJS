@@ -114,7 +114,7 @@
   function cli() {
     var optparser = new util.OptParser([
       ["m",           "module-name",  "", "Export asm module as this name"],
-      ["e",           "exported-funcs", "main", "Functions to export from the asm module (comma-delimited)"],
+      ["e",           "exported-funcs", "main, reset", "Functions to export from the asm module (comma-delimited)"],
       ["E",           "only-parse",   false, "Only parse"],
       ["A",           "emit-ast",     false, "Do not generate JS, emit AST"],
       ["P",           "pretty-print", false, "Pretty-print AST instead of emitting JSON (with -A)"],
@@ -231,7 +231,7 @@
             '{% finalize %}',
             (options['module-name'] ?
              'window.' + options['module-name'] + ' = asm;' :
-             'asm.main();')
+             'asm.reset(); asm.main();')
           );
         }
       }

@@ -740,6 +740,12 @@
                 allowUnparenthesizedNew: false
             });
 
+            //FIXME:
+            //Check if the string ends in .call and remove
+            if ( result.substr( result.length - 5, 5 ) === '.call' ) {
+                result = result.substr( 0, result.length - 5 );
+            }
+
             result += '(';
             for (i = 0, len = expr['arguments'].length; i < len; i += 1) {
                 result += generateExpression(expr['arguments'][i], {
