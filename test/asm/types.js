@@ -10,6 +10,10 @@ var STACK_SIZE = 2 * MB;
 var HEAP_SIZE = SIZE - STACK_SIZE;
 var buffer = new ArrayBuffer(SIZE);
 
+if(typeof window !== 'undefined') {
+    window.asmBuffer = buffer;
+}
+
 var asm = (function (global, env, buffer) {
     "use asm";
 
@@ -44,6 +48,7 @@ var asm = (function (global, env, buffer) {
     var pow = global.Math.pow;
     var imul = global.Math.imul;
 
+var globalSP = 64;
   function Point$Point(thisPtr, x, y) {
     thisPtr = thisPtr | 0;
     x = +x;
@@ -60,7 +65,7 @@ function bar(p) {
   F8[(($SP)) >> 3] = 3.4;
   I4[((($SP)) + 8 | 0) >> 2] = 5;
   U4[((($SP)) + 12 | 0) >> 2] = p | 0;
-  return _ = +(+(I4[((($SP)) + 8 | 0) >> 2] | 0 | 0) + +F8[(U4[((($SP)) + 12 | 0) >> 2] | 0) >> 3]), U4[1] = (U4[1] | 0) + 16 | 0, _;
+  return +(_ = +(+(I4[((($SP)) + 8 | 0) >> 2] | 0 | 0) + +F8[(U4[((($SP)) + 12 | 0) >> 2] | 0) >> 3]), U4[1] = (U4[1] | 0) + 16 | 0, _);
   U4[1] = (U4[1] | 0) + 16;
   return 0.0;
 }
@@ -71,7 +76,7 @@ function foo() {
   (Point$Point(($SP) | 0 | 0, 5.5, 6.6), F8[($SP) >> 3]);
   (Point$Point(($SP) + 16 | 0 | 0, 7.7, 8.8), F8[(($SP) + 16 | 0) >> 3]);
   (Point$Point(($SP) + 32 | 0 | 0, 9.9, 1.1), F8[(($SP) + 32 | 0) >> 3]);
-  return _ = +(+F8[(($SP) + 16 | 0) >> 3] + +F8[((($SP) + 32 | 0) + 8 | 0) >> 3]), U4[1] = (U4[1] | 0) + 48 | 0, _;
+  return +(_ = +(+F8[(($SP) + 16 | 0) >> 3] + +F8[((($SP) + 32 | 0) + 8 | 0) >> 3]), U4[1] = (U4[1] | 0) + 48 | 0, _);
   U4[1] = (U4[1] | 0) + 48;
   return 0.0;
 }
@@ -95,10 +100,10 @@ function main() {
   assertEqual(+F8[(($SP) + 64 | 0) >> 3], 1.6);
   assertEqual(+F8[((($SP) + 32 | 0) + 8 | 0) >> 3], 3.6);
   I4[(($SP) + 80 | 0) >> 2] = 512;
-  assertEqual(U1[(((($SP) + 80 | 0) >> 0 | 0) + 0) >> 0] | 0, 0);
-  assertEqual(U1[(((($SP) + 80 | 0) >> 0 | 0) + 1) >> 0] | 0, 2);
-  assertEqual(U1[(((($SP) + 80 | 0) >> 0 | 0) + 2) >> 0] | 0, 0);
-  assertEqual(U1[(((($SP) + 80 | 0) >> 0 | 0) + 3) >> 0] | 0, 0);
+  assertEqual(U1[(((($SP) + 80 | 0) | 0) + 0) >> 0] >>> 0, 0);
+  assertEqual(U1[(((($SP) + 80 | 0) | 0) + 1) >> 0] >>> 0, 2);
+  assertEqual(U1[(((($SP) + 80 | 0) | 0) + 2) >> 0] >>> 0, 0);
+  assertEqual(U1[(((($SP) + 80 | 0) | 0) + 3) >> 0] >>> 0, 0);
   U4[1] = (U4[1] | 0) + 88;
   return 0.0;
 }

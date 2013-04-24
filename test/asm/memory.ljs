@@ -1,0 +1,41 @@
+
+extern assertEqual;
+
+let int NUMS[20];
+
+function void testLocalArray() {
+  // Test local arrays
+  let int arr[20];
+  arr[0] = 1;
+  arr[15] = 2;
+
+  assertEqual(arr[0], 1);
+  assertEqual(arr[15], 2);
+
+  NUMS[10] = NUMS[10] + 1;
+}
+
+function void main() {
+  NUMS[10] = 0;
+
+  // Test local primitives & pointers
+  let int x = 42;
+  let int *y = &x;
+  let int **z = &y;
+
+  *y = 1;
+  assertEqual(x, 1);
+
+  **z = 12;
+  assertEqual(x, 12);
+  assertEqual(***(&z), 12);
+
+  // Call a function that allocates an array on the stack and also
+  // manipulates data in the global stack
+  testLocalArray();
+  testLocalArray();
+  testLocalArray();
+
+  // Test global stack memory
+  assertEqual(NUMS[10], 3);
+}

@@ -45,6 +45,7 @@
   const UnaryExpression = T.UnaryExpression;
   const NewExpression = T.NewExpression;
   const UpdateExpression = T.UpdateExpression;
+  const LogicalExpression = T.LogicalExpression;
   const ForStatement = T.ForStatement;
   const BlockStatement = T.BlockStatement;
   const CatchClause = T.CatchClause;
@@ -422,6 +423,18 @@
         scope.freshVariable("sqrt", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
     );
 
+    scope.addVariable(
+        scope.freshVariable("abs", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+
+    scope.addVariable(
+        scope.freshVariable("sin", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+
+    scope.addVariable(
+        scope.freshVariable("cos", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+
     logger.push(this);
     scanList(this.body, o);
     logger.pop();
@@ -721,7 +734,7 @@
       'var',
       [new VariableDeclarator(new Identifier('globalSP'),
                               new Literal(this.frame.frameSize),
-                              Types.u32ty)]
+                              Types.i32ty)]
     );
 
     this.body.unshift(globalSP);
@@ -940,8 +953,8 @@
   };
 
   const BINOP_ARITHMETIC = ["+", "-", "*", "/", "%"];
-  const BINOP_BITWISE    = ["<<", ">>", ">>>", "~", "&", "|"]
-  const BINOP_COMPARISON = ["==", "!=", "===", "!==", "<", ">", "<=", ">="]
+  const BINOP_BITWISE    = ["<<", ">>", ">>>", "~", "&", "|"];
+  const BINOP_COMPARISON = ["==", "!=", "===", "!==", "<", ">", "<=", ">="];
 
   ConditionalExpression.prototype.transformNode = function (o) {
     var ty;
@@ -1076,7 +1089,7 @@
     if (this.callee instanceof Identifier && (ty = o.types[this.callee.name])) {
       var pty = new PointerType(ty)
       var allocation = new CallExpression(o.scope.MALLOC(),
-                                          [cast(literal(ty.size), Types.u32ty)], this.loc);
+                                          [cast(literal(ty.size), Types.i32ty)], this.loc);
       allocation = cast(allocation.transform(o), pty);
       // Check if we have a constructor ArrowType.
       if (ty instanceof StructType) {
@@ -1100,7 +1113,7 @@
                (ty = o.types[this.callee.object.name])) {
       var size = new BinaryExpression("*", literal(ty.size), this.callee.property, this.loc);
       var allocation = new CallExpression(o.scope.MALLOC(),
-                                          [cast(size, Types.u32ty)], this.loc);
+                                          [cast(size, Types.i32ty)], this.loc);
       return cast(allocation.transform(o), new PointerType(ty));
     }
     return Node.prototype.transform.call(this, o);
@@ -1281,6 +1294,11 @@
 
     var rty = expr.ty;
 
+    // TODO: this needs to be cleaned up. currently we produce too
+    // many annotaions (like `x | 0 | 0`) and it's generally unclear
+    // when the annotations are generated. clean the following code up
+    // and resolve any differences with `forceType` in util.js
+
     // asm.js requires every expression to be casted
     // if (this === rty) {
     //   return expr;
@@ -1424,7 +1442,7 @@
             this.base.align.size + "-byte aligned " + quote(Types.tystr(this, 0)), true);
     }
 
-    return forceType(expr, Types.u32ty);
+    return forceType(expr, Types.i32ty);
   };
 
   StructType.prototype.convert = function (expr) {
@@ -1741,19 +1759,27 @@
         var restoreStack = new AssignmentExpression(
             scope.frame.realSP(), "=", 
             forceType(
-                cast(new BinaryExpression(
+                new BinaryExpression(
                     "+", forceType(scope.frame.realSP()), literal(frameSize)
-                ), Types.u32ty)
+                ),
+                Types.i32ty
             )
         );
-        exprList.push(restoreStack);
+          exprList.push(restoreStack);
       }
       if(o.memcheck) {
         var popMemcheck = new CallExpression(scope.MEMCHECK_CALL_POP(), []);
         exprList.push(popMemcheck);
       }
       exprList.push(t);
-      this.argument = new SequenceExpression(exprList, arg.loc);
+
+      // asm.js won't let you return unsigned, so we force
+      // a signed type (pass `true` as 3rd arg)
+      this.argument = forceType(
+        new SequenceExpression(exprList, arg.loc),
+        arg.ty,
+        true
+      );
     }
   };
 
@@ -1777,12 +1803,6 @@
     var arg = this.argument;
 
     if (this.operator === "*") {
-      // If the identifer has already been aligned, so we just need to
-      // pick out the unaligned address
-      if(arg.left instanceof BinaryExpression) {
-        arg.left = arg.left.left;
-      }
-
       return dereference(arg, 0, this.ty, o.scope, this.loc);
     }
 

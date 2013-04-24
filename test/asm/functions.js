@@ -10,6 +10,10 @@ var STACK_SIZE = 2 * MB;
 var HEAP_SIZE = SIZE - STACK_SIZE;
 var buffer = new ArrayBuffer(SIZE);
 
+if(typeof window !== 'undefined') {
+    window.asmBuffer = buffer;
+}
+
 var asm = (function (global, env, buffer) {
     "use asm";
 
@@ -44,6 +48,7 @@ var asm = (function (global, env, buffer) {
     var pow = global.Math.pow;
     var imul = global.Math.imul;
 
+var globalSP = 64;
 function add1(x) {
   x = x | 0;
   var $SP = 0;

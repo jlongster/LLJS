@@ -44,16 +44,16 @@
       assert(isAlignedTo(byteOffset, ty.align.size), "unaligned byte offset " + byteOffset +
              " for type " + quote(ty) + " with alignment " + ty.align.size);
       address = forceType(
-        cast(new BinaryExpression("+",
-                                  address,
-                                  new Literal(byteOffset), address.loc),
-             Types.i32ty)
+        new BinaryExpression("+",
+                             address,
+                             new Literal(byteOffset), address.loc),
+        Types.i32ty
       );
     }
 
     // asm.js requires a byte pointer to be shifted the appropriate
     // amount to access typed arrays
-   
+
     address = new BinaryExpression(
       ">>",
       address,
@@ -73,7 +73,8 @@
 
     var expr;
     if (ty instanceof Types.ArrayType) {
-      expr = address;
+      // Remove the bitshift to access the raw byte pointer
+      expr = address.left;
     } else {
       expr = new MemberExpression(scope.getView(ty), address, true, loc);
     }
@@ -82,15 +83,20 @@
     return expr;
   }
 
-  function forceType(expr, type) {
+  function forceType(expr, type, forceSigned) {
     if(type || expr.ty) {
-      type = type || (expr.ty instanceof Types.PointerType ? expr.ty.base : expr.ty);
-      
+      type = type || expr.ty;
+
       if(type.numeric && !type.integral) {
         return cast(new UnaryExpression('+', expr), expr.ty);
       }
       else {
-        return cast(new BinaryExpression('|', expr, new Literal(0)), expr.ty);
+        if(type.signed || forceSigned || type instanceof Types.PointerType) {
+          return cast(new BinaryExpression('|', expr, new Literal(0)), expr.ty);
+        }
+        else {
+          return cast(new BinaryExpression('>>>', expr, new Literal(0)), expr.ty);
+        }
       }
     }
 

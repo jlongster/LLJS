@@ -13,7 +13,7 @@ js_files = memory.js memcheck.js test-memcheck.js \
 			access-nbody.js access-nbody-memcheck.js \
 			linked-list.js linked-list-memcheck.js
 
-asmtestfiles = $(addprefix test/asm/, primitives.js functions.js types.js pointers.js)
+asmtestfiles = $(addprefix test/asm/, primitives.js functions.js types.js memory.js)
 
 mainfiles = $(addprefix $(srcdir)/, memory.js memcheck.js)
 nodefiles := $(addprefix $(build_node)/, $(js_files))
