@@ -1,0 +1,179 @@
+/*
+   +---------------+ -
+ 0 | Heap  Pointer |
+ 1 | Stack Pointer |
+   +---------------+ <- Heap Pointer (HP)
+   |               |
+   |               | |
+   |     HEAP      | | Malloc Region
+   |               | v
+   |               |
+   +---------------+
+   |               |
+   |               | ^
+   |     STACK     | |
+   |               | |
+   |               |
+   +---------------+ <- Stack Pointer (SP)
+*/
+
+
+
+/* K&R Malloc */
+
+struct Header {
+  Header *next;
+  uint size;
+};
+
+let Header *base = null;
+let Header *freep = null;
+
+function void reset () {
+    U4[0] = 4;
+    U4[1] = (u32)(totalSize);
+
+    base = (Header *)(2);
+    freep = null;
+}
+
+function word *sbrk( int nBytes ) {
+
+    let int nWords = nBytes / sizeof(word);
+
+    let int j = U4[0] + nWords;
+    if (j > (int)(heapSize)) {
+    //print(int("anull sbrk"));
+        return null;
+    }
+
+    let word *address = (word *)(U4[0]);
+    U4[0] += nWords;
+    //print("address = " + address);
+    return address;
+
+}
+
+let uint nUnitsMin = 1024;
+
+function Header *morecore(uint nUnits) {
+  if (nUnits < nUnitsMin) {
+    nUnits = nUnitsMin;
+  }
+  let word *buffer = sbrk(nUnits * sizeof(Header));
+
+  if ( int(buffer) == 0 ) {
+    return null;
+  }
+  
+  let Header *header = (Header *)(buffer);
+  header->size = nUnits;
+  
+  free((byte*)(header + 1));
+  return freep;
+}
+
+function byte *malloc(int nBytes) {
+
+    let Header *p, *prevp;
+    let uint nUnits = ((nBytes + sizeof(Header) - 1) / sizeof(Header)) + 1;
+
+    if ( (prevp = freep) == null ) {
+        base->next = freep = prevp = base;
+        base->size = 0;
+    }
+
+    let int i = 0;
+    for (p = prevp->next; i < 10; prevp = p, p = p->next, i++) {
+        //print("hue with psize = " + p->size + " and nUnits = " + nUnits );
+        if (p->size >= nUnits) {
+
+            if (p->size == nUnits) {
+                prevp->next = p->next;
+            } else {
+
+                p->size -= nUnits;
+                //console.log(" p pre-resize = " + p + " as uint " + uint(p) + " as double " + double(p) )
+                
+                //p + (U4[((p) + 4 | 0) >> 2] | 0) * 8
+                p = (Header *)(int(p) + p->size * 8);
+                p->size = nUnits;
+                //console.log( " reset psize to " + p->size + " and p to " + p );
+
+            }
+
+            freep = prevp;
+
+            //print(" about to return p = " + p);
+            //print("     returning " + (byte*)(p + 1));
+            return (byte*)(p + 1);
+        }
+
+        if ( uint(p) == uint(freep) ) {
+            //print("grabbing morecore");
+            if ((p = morecore(nUnits)) == null) {
+                return null;
+            }
+        }
+    }
+
+    return null;
+
+}
+
+
+function void free(byte* ap) {
+
+    let Header *bp = (Header *)(ap) - 1, *p;
+
+    let Header * comp1, * comp2;
+  
+    let int i = 0;
+    for (p = freep; i==0; p = p->next) {
+
+        if ( uint(bp) > uint(p) ) {
+            if ( uint(bp) < uint(p->next) ) {
+                break;
+            } 
+        }
+        //!(bp > p && bp < p->next)
+
+        if ( uint(p) >= uint(p->next) ) {
+            if ( uint(bp) > uint(p) ) {
+                break;
+            } else if ( uint(bp) < uint(p->next) ) {
+                break;
+            }
+        }
+        //p >= p->next && (bp > p || bp < p->next)
+
+    }
+
+    comp1 = (Header *)(int(bp) + bp->size * 8);
+    comp2 = (Header *)(int(p) + p->size * 8);
+
+    if ( uint(comp1) == uint(p->next) ) {
+
+        bp->size += p->next->size;
+        bp->next = p->next->next;
+
+    } else {
+
+        bp->next = p->next;
+
+    }
+
+    if ( uint(comp2) == uint(bp) ) {
+
+        p->size += bp->size;
+        p->next = bp->next;
+
+    } else {
+
+        p->next = bp;
+
+    }
+
+    freep = p;
+
+}

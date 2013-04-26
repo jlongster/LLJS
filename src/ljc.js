@@ -114,7 +114,7 @@
   function cli() {
     var optparser = new util.OptParser([
       ["m",           "module-name",  "", "Export asm module as this name"],
-      ["e",           "exported-funcs", "main", "Functions to export from the asm module (comma-delimited)"],
+      ["e",           "exported-funcs", "main, reset, malloc", "Functions to export from the asm module (comma-delimited)"],
       ["E",           "only-parse",   false, "Only parse"],
       ["A",           "emit-ast",     false, "Do not generate JS, emit AST"],
       ["P",           "pretty-print", false, "Pretty-print AST instead of emitting JSON (with -A)"],
@@ -127,7 +127,8 @@
       ["o",           "output",       "",    "Output file name"],
       // ["m",           "memcheck",     false, "Compile with memcheck instrumentation"],
       ["h",           "help",         false, "Print this message"],
-      ["w",           "nowarn",       false, "Inhibit all warning messages"]
+      ["w",           "nowarn",       false, "Inhibit all warning messages"],
+      ["b",           "bindings",     false,  "Generate bindings"]
     ]);
 
     var p = optparser.parse(argv);
@@ -195,6 +196,7 @@
 
     try {
       var node = esprima.parse(source, { loc: true, comment: true, range: true, tokens: true });
+
       node = escodegen.attachComments(node, node.comments, node.tokens);
 
       if (options["only-parse"]) {
@@ -203,6 +205,7 @@
         var data = compiler.compile(node, options.filename, logger, options);
         var externs = data.externs;
         var exports = options['exported-funcs'].split(',');
+
         node = data.node;
 
         if (options["emit-ast"]) {
@@ -216,6 +219,10 @@
           );
 
           code += escodegen.generate(node, { base: "", indent: "  ", comment: true });
+
+          if ( options['bindings'] ) {
+            exports = exports.concat( esprima.getBindingFunctions() );
+          }
 
           code += snarf(__dirname + '/template/footer.js').toString().replace(
             '{% externs %}',
@@ -231,8 +238,12 @@
             '{% finalize %}',
             (options['module-name'] ?
              'window.' + options['module-name'] + ' = asm;' :
-             'asm.main();')
+             'asm.reset(); asm.main();')
           );
+
+          if ( options['bindings'] ) {
+            code += esprima.getBindings();
+          }
         }
       }
     } catch (e) {

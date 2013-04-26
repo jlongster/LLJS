@@ -1,0 +1,124 @@
+
+extern console;
+
+let int count = 0;
+
+struct Vector3 {
+
+    function Vector3 * Vector3( int x, int y, int z ) {
+
+        this->x = x;
+        this->y = y;
+        this->z = z;
+
+        count = count + 1;
+        this->id = count;
+
+        return this;
+
+    }
+
+    //----------------------------------------------------------------//
+
+    function Vector3 * add ( Vector3 * vector ) {
+
+        this->x += vector->x;
+        this->y += vector->y;
+        this->z += vector->z;
+
+        return this;
+
+    }
+
+    //----------------------------------------------------------------//
+
+    function Vector3 * sub ( Vector3 * vector ) {
+
+        this->x = this->x - vector->x;
+        this->y = this->y - vector->y;
+        this->z = this->z - vector->z;
+
+        return this;
+
+    }
+
+    //----------------------------------------------------------------//
+
+    function Vector3 * clone () {
+
+        let Vector3 * ret = new Vector3(0,0,0);
+        ret->x = this->x;
+        ret->y = this->y;
+        ret->z = this->z;
+
+        return ret;
+
+    }
+
+    //----------------------------------------------------------------//
+
+    function Vector3 * copy ( Vector3 * vector ) {
+
+        this->x = vector->x;
+        this->y = vector->y;
+        this->z = vector->z;
+
+        return this;
+
+    }
+
+    //----------------------------------------------------------------//
+
+    int x, y, z, id;
+
+}
+
+
+function main () {
+
+	console.log( '// ------------------------------------------- //' );
+	console.log( '// ** B E G I N   M A I N' );
+	console.log( '// ------------------------------------------- //' );
+
+	let Vector3 * a = new Vector3(1,0,4);
+	let Vector3 * b = new Vector3(0,2,4);
+	let Vector3 * c = new Vector3(20,5,3);
+	let Vector3 * d = new Vector3(10,6,5);
+
+	console.log( 'trying a + b :  ');
+	a->add( b );
+	console.log( '		expected: 1 2 8');
+	console.log( '		actual:   ' + a->x + ' ' + a->y + ' ' + a->z );
+	console.log( '// ------------------------------------------- //' );
+
+	console.log( 'trying b - d :  ');
+	b->sub( d );
+	console.log( '		expected: -10 -4 -1');
+	console.log( '		actual:   ' + b->x + ' ' + b->y + ' ' + b->z );
+	console.log( '// ------------------------------------------- //' );
+
+	console.log( 'trying d - c :  ');
+	d->sub( c );
+	console.log( '		expected: -10 1 2');
+	console.log( '		actual:   ' + d->x + ' ' + d->y + ' ' + d->z );
+	console.log( '// ------------------------------------------- //' );
+
+	console.log( 'trying clone c :  ');
+	let Vector3 * e = c->clone();
+	console.log( '		expected: 20 5 3');
+	console.log( '		actual:   ' + e->x + ' ' + e->y + ' ' + e->z );
+	console.log( '// ------------------------------------------- //' );
+
+	console.log( 'trying copy d :  ');
+	e->copy( d );
+	console.log( '		expected: -10 1 2');
+	console.log( '		actual:   ' + e->x + ' ' + e->y + ' ' + e->z );
+	console.log( '// ------------------------------------------- //' );
+
+	console.log( 'trying e + a  ');
+	e->add( a );
+	console.log( '		expected: -9 3 10');
+	console.log( '		actual:   ' + e->x + ' ' + e->y + ' ' + e->z );
+	console.log( '// ------------------------------------------- //' );
+
+}
