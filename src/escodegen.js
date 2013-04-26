@@ -876,6 +876,7 @@
 
         case Syntax.FunctionExpression:
             result = 'function';
+
             if (expr.id) {
                 result += ' ' + expr.id.name;
             } else {
@@ -1388,6 +1389,7 @@
                 result += (space === '' ? ' ' : '') + stmt.id.name;
             }
             result += generateFunctionBody(stmt);
+
             break;
 
         case Syntax.ReturnStatement:

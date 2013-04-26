@@ -40,6 +40,31 @@
 (function (exports) {
   'use strict';
 
+  var NODE_JS = 1;
+    var JS_SHELL = 2;
+    var BROWSER = 3;
+    var bindings = 'var Object__cache = {}; // we do it this way so we do not modify |Object|\n' +
+                  'function wrapPointer(ptr, __class__) {\n' +
+                  '   var cache = __class__ ? __class__.prototype.__cache__ : Object__cache;\n' +
+                  '   var ret = cache[ptr];\n' +
+                  '   if (ret) return ret;\n' +
+                  '       __class__ = __class__ || Object;\n' +
+                  '   ret = Object.create(__class__.prototype);\n' +
+                  '   ret.ptr = ptr;\n' +
+                  '   ret.__class__ = __class__;\n' +
+                  '   return cache[ptr] = ret;\n' +
+                  '}\n\n';
+    var bindingFunctions = [];
+
+    var mode;
+    if (typeof process !== "undefined") {
+        mode = NODE_JS;
+    } else if (typeof snarf !== "undefined") {
+        mode = JS_SHELL;
+    } else {
+        mode = BROWSER;
+    }
+
   var Token,
       TokenName,
       Syntax,
@@ -3101,6 +3126,9 @@
 
   function parseStructType() {
     var isUnion = false;
+
+    var bindingsData = [];
+
     if (matchKeyword('union')) {
       lex();
       isUnion = true;
@@ -3123,7 +3151,11 @@
       var modifiers = parseModifiers();
       var list = [];
       if (matchKeyword("function")) {
+
         list.push(parseFunctionDeclaration());
+
+        bindingsData.push( list[ list.length - 1 ] );
+
       } else if (matchKeyword("struct") || matchKeyword("union")) {
         list.push.apply(list, parseVariableDeclarationList(undefined, true,
                                                            parseStructType()));
@@ -3141,6 +3173,22 @@
       consumeSemicolon();
     }
     expect('}');
+
+    var structMembers = [];
+    for ( var i = 0; i < members.length; i++ ) {
+
+        if ( members[i].declarator.type === 'VariableDeclarator' ) {
+            structMembers.push( members[i].declarator );
+        }
+        
+    }
+
+    if ( mode == NODE_JS ) {
+
+        createBindings( bindingsData, id.name, structMembers )
+
+    }
+
     return {
       type: Syntax.StructType,
       id: id,
@@ -3148,6 +3196,167 @@
       isUnion: isUnion
     };
   }
+
+  // ------------------------------------------------------------ //
+
+  function grabByteSize ( members ) {
+
+    var size = 0;
+
+    for ( var i = 0; i < members.length; i++ ) {
+
+        var member = members[i];
+
+        if ( member.decltype.type === 'TypeIdentifier' ) {
+            switch ( member.decltype.name ) {
+
+                case 'double':
+                    size += 8;
+
+                    break;
+
+                case 'int':
+                    size += 4;
+
+                    break;
+
+            }
+        } else if ( member.decltype.type === 'ArrayType' ) {
+            var length = member.decltype.length;
+
+            switch ( member.decltype.base.name ) {
+
+                case 'double':
+                    size += 8 * length;
+
+                    break;
+
+                case 'int':
+                    size += 4 * length;
+
+                    break;
+
+            }
+        }
+
+    }
+
+    return size;
+
+  }
+
+  // ------------------------------------------------------------ //
+
+  function createBindings ( functions, structName, structMembers ) {
+
+    var byteSize = grabByteSize( structMembers );
+
+    for ( var i = 0; i < functions.length; i++ ) {
+  
+        var curr = functions[i];
+
+        //Constructor.
+        if ( curr.id.name === structName ) {
+
+            var ret = 'function ' + curr.id.name;
+
+        //Prototype
+        } else {
+
+            var ret = structName + '.prototype.' + curr.id.name + ' = function ';
+
+        }
+
+        ret += '(';
+        for ( var j = 0; j < curr.params.length; j++ ) {
+
+            var param = curr.params[j];
+
+            ret += param.name;
+            if ( j + 1 !== curr.params.length ) {
+                ret += ', ';
+            }
+
+        }
+        ret += ') { \n';
+
+        //Constructor body
+        if ( curr.id.name === structName ) {
+
+            ret += "this.ptr = asm." + structName + '$' + structName + '( asm.malloc(' + byteSize + ')';
+
+            if ( curr.params.length > 0 ) {
+                ret += ', ';
+            }
+
+            for ( var j = 0; j < curr.params.length; j++ ) {
+
+                var param = curr.params[j];
+
+                ret += param.name;
+                if ( j + 1 !== curr.params.length ) {
+                    ret += ', ';
+                }
+
+            }
+            ret += ');\n';
+            ret += 'this.__class__ = ' + structName + ';\n';
+            ret += structName + '.prototype.__cache__[this.ptr] = this;\n';
+
+        //Prototype body
+        } else {
+
+            var methodCall = 'asm.' + structName + '$' + curr.id.name + '( this.ptr';
+
+            if ( curr.params.length > 0 ) {
+                methodCall += ', ';
+            }
+
+            for ( var j = 0; j < curr.params.length; j++ ) {
+
+                var param = curr.params[j];
+                var decltype = curr.decltype.params[j];
+
+                methodCall += param.name;
+
+                if ( decltype.type === 'PointerType' ) {
+                    methodCall += '.ptr';
+                }
+
+                if ( j + 1 !== curr.params.length ) {
+                    methodCall += ', ';
+                }
+
+            }
+            methodCall += ' )';
+
+            if ( curr.decltype.return.type === 'PointerType' ) {
+                var type = curr.decltype.return.base.name;
+
+                ret += '  return wrapPointer( ' + methodCall + ', ' + type + ' );\n';
+
+            } else {
+
+                ret += '  return ' + methodCall + ';\n';
+
+            }
+
+        }
+
+        ret += '}\n\n';
+
+        //Build the cache
+        if ( curr.id.name === structName ) {
+          ret += structName + ".prototype.__cache__ = {};\n\n";
+        }
+
+        bindingFunctions.push( structName + '$' + curr.id.name );
+        bindings += ret;
+    }
+
+  }
+
+  // ------------------------------------------------------------ //
 
   function parseFunctionDeclaration() {
     var id, param, paramType, params = [], body, token, firstRestricted, message, previousStrict, paramSet, paramTypes, returnType;
@@ -3990,6 +4199,12 @@
   exports.version = '1.0.0-dev';
 
   exports.parse = parse;
+    exports.getBindings = function () {
+        return bindings;
+    };
+    exports.getBindingFunctions = function () {
+      return bindingFunctions;
+    };
 
 }(typeof exports === 'undefined' ? (esprima = {}) : exports));
 /* vim: set sw=4 ts=4 et tw=80 : */
