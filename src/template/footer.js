@@ -92,18 +92,9 @@ function assertEqual(val1, val2) {
   }
 }
 
-function _print(/* arg1, arg2, ..., argN */) {
-    var func = ((typeof console !== 'undefined' && console.log) || print);
-    func.apply(null, arguments);
-}
-
-var _time;
-function start() {
-  _time = Date.now();
-}
-
-function end() {
-  return Date.now() - _time;
+function write(/* arg1, arg2, ..., argN */) {
+    if(this.console)
+    	console.log.apply(console, arguments);
 }
 
 {% finalize %}
