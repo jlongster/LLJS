@@ -410,6 +410,7 @@
     scope.addVariable(scope.freshVariable("memcpy", Types.memcpyTy), true);
     scope.addVariable(scope.freshVariable("memset", Types.memsetTy), true);
 
+	//Heap View Types
     scope.addVariable(scope.freshVariable("U1", new Types.ArrayType(Types.u8ty)), true);
     scope.addVariable(scope.freshVariable("I1", new Types.ArrayType(Types.i8ty)), true);
     scope.addVariable(scope.freshVariable("U2", new Types.ArrayType(Types.u16ty)), true);
@@ -419,6 +420,47 @@
     scope.addVariable(scope.freshVariable("F4", new Types.ArrayType(Types.f32ty)), true);
     scope.addVariable(scope.freshVariable("F8", new Types.ArrayType(Types.f64ty)), true);
 
+	//Functions
+    scope.addVariable(
+        scope.freshVariable("acos", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("asin", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("atan", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+
+    scope.addVariable(
+        scope.freshVariable("cos", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+
+    scope.addVariable(
+        scope.freshVariable("sin", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("tan", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("ceil", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("floor", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("exp", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("log", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+    );
+    
     scope.addVariable(
         scope.freshVariable("sqrt", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
     );
@@ -426,13 +468,67 @@
     scope.addVariable(
         scope.freshVariable("abs", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
     );
-
+    
     scope.addVariable(
-        scope.freshVariable("sin", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+        scope.freshVariable("atan2", new Types.ArrowType([Types.f32ty, Types.f32ty], Types.f32ty)), true
     );
-
+    
     scope.addVariable(
-        scope.freshVariable("cos", new Types.ArrowType([Types.f32ty], Types.f32ty)), true
+        scope.freshVariable("pow", new Types.ArrowType([Types.f32ty, Types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("imul", new Types.ArrowType([Types.i32ty, Types.i32ty], Types.i32ty)), true
+    );
+    
+    //Non asm functions
+    scope.addVariable(
+        scope.freshVariable("stdmin", new Types.ArrowType([Types.f32ty, types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("stdmax", new Types.ArrowType([Types.f32ty, types.f32ty], Types.f32ty)), true
+    );
+    
+    scope.addVariable(
+        scope.freshVariable("stdrandom", new Types.ArrowType([], Types.f32ty)), true
+    );
+    
+    //Literals
+    scope.addVariable(
+        new Variable("PI", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("Infinity", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("Euler", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("LN10", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("LN2", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("LOG2E", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("LOG10E", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("SQRT1_2", Types.f32ty), true
+    );
+    
+    scope.addVariable(
+        new Variable("SQRT2", Types.f32ty), true
     );
 
     logger.push(this);
